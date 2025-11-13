@@ -1,47 +1,67 @@
 <?php
 session_start();
+require_once "database.php";
 require_once "User.php";
 
 $message = "";
 
+// check if user came from login
+if (!isset($_SESSION['email'])) {
+    header("Location: login.php");
+    exit;
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $entered = $_POST['code'];
+
+    $database = new Database();
+    $db = $database->connect();
+
+    $user = new User($db);
+
     $email = $_SESSION['email'];
+    $entered_code = $_POST['code'];
 
-    $user = new User();
-    $stmt = $user->verify2FA($email, $entered);
+    // verify
+    if ($user->verify2FACode($email, $entered_code)) {
 
-    if ($stmt->rowCount() > 0) {
-        // Success — clear code and go to dashboard
+        // login success
         $_SESSION['logged_in'] = true;
-        echo "<script>alert('✅ 2FA verified successfully!'); window.location='dashboard.php';</script>";
+
+        echo "<script>
+                alert('Verification successful! Logging you in...');
+                window.location='dashboard.php';
+             </script>";
         exit;
+
     } else {
-        $message = "<div class='alert alert-danger'>Incorrect code. Please try again.</div>";
+        $message = "<div class='alert alert-danger'>Incorrect code. Try again.</div>";
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html lang='en'>
+<html lang="en">
 <head>
-  <meta charset='UTF-8'>
+  <meta charset="UTF-8">
   <title>Verify Code</title>
-  <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' rel='stylesheet'>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class='bg-light'>
-<div class='container mt-5'>
-  <div class='card shadow p-4 mx-auto' style='max-width:400px;'>
-    <h3 class='text-center mb-3'>Two-Factor Verification</h3>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+  <div class="card shadow p-4 mx-auto" style="max-width:400px;">
+    <h3 class="text-center mb-3">Enter Verification Code</h3>
     <?= $message ?>
-    <form method='POST'>
-      <div class='mb-3'>
-        <label>Enter 6-Digit Code</label>
-        <input type='text' name='code' maxlength='6' class='form-control' required>
+    <form method="POST">
+      <div class="mb-3">
+        <label>Verification Code</label>
+        <input type="number" name="code" class="form-control" required>
       </div>
-      <button type='submit' class='btn btn-success w-100'>Verify</button>
+      <button type="submit" class="btn btn-primary w-100">Verify</button>
     </form>
   </div>
 </div>
+
 </body>
 </html>

@@ -2,6 +2,7 @@
 require_once "database.php";
 
 class Project {
+
     private $conn;
     private $table_name = "projects";
 
@@ -11,50 +12,39 @@ class Project {
     public $description;
     public $visibility;
 
-    public function __construct() {
-        $database = new Database();
-        $this->conn = $database->connect();
+    public function __construct($db) {
+        $this->conn = $db;
     }
 
-    // CREATE
+    /* CREATE PROJECT */
     public function create() {
-        $query = "INSERT INTO {$this->table_name} (user_id, project_name, description, visibility)
+        $query = "INSERT INTO {$this->table_name}
+                  (user_id, project_name, description, visibility)
                   VALUES (:user_id, :project_name, :description, :visibility)";
+
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':user_id', $this->user_id);
-        $stmt->bindParam(':project_name', $this->project_name);
-        $stmt->bindParam(':description', $this->description);
-        $stmt->bindParam(':visibility', $this->visibility);
+
+        $stmt->bindParam(":user_id", $this->user_id);
+        $stmt->bindParam(":project_name", $this->project_name);
+        $stmt->bindParam(":description", $this->description);
+        $stmt->bindParam(":visibility", $this->visibility);
+
         return $stmt->execute();
     }
 
-    // READ
-    public function readAll($user_id) {
-        $query = "SELECT * FROM {$this->table_name} WHERE user_id = :user_id ORDER BY created_at DESC";
+    /* READ ALL PROJECTS */
+    public function getAll() {
+        $query = "SELECT * FROM {$this->table_name} ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
         return $stmt;
     }
 
-    // UPDATE
-    public function update() {
-        $query = "UPDATE {$this->table_name} 
-                  SET project_name = :project_name, description = :description, visibility = :visibility 
-                  WHERE project_id = :project_id";
+    /* DELETE */
+    public function delete($id) {
+        $query = "DELETE FROM {$this->table_name} WHERE project_id = :id";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':project_name', $this->project_name);
-        $stmt->bindParam(':description', $this->description);
-        $stmt->bindParam(':visibility', $this->visibility);
-        $stmt->bindParam(':project_id', $this->project_id);
-        return $stmt->execute();
-    }
-
-    // DELETE
-    public function delete() {
-        $query = "DELETE FROM {$this->table_name} WHERE project_id = :project_id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':project_id', $this->project_id);
+        $stmt->bindParam(":id", $id);
         return $stmt->execute();
     }
 }

@@ -1,33 +1,44 @@
 <?php
 session_start();
+require_once "database.php";
 require_once "User.php";
 
 $message = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $user = new User();
+
+    // connect to db
+    $database = new Database();
+    $db = $database->connect();
+
+    // user model
+    $user = new User($db);
+
+    // check if email exists
     $stmt = $user->getByEmail($_POST['email']);
 
     if ($stmt->rowCount() > 0) {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (password_verify($_POST['password'], $row['password_hash'])) {
-            // ✅ Generate random 6-digit code
+
+            // generate 6-digit code
             $code = rand(100000, 999999);
 
-            // ✅ Save to DB
+            // save 2FA code
             $user->set2FACode($_POST['email'], $code);
 
-            // ✅ Store in session
+            // save session
             $_SESSION['email'] = $_POST['email'];
             $_SESSION['2fa_code'] = $code;
 
-            // ✅ Show code (for demo) and redirect
+            // redirect to 2FA page
             echo "<script>
                     alert('Your verification code is: $code');
                     window.location='verify_code.php';
-                  </script>";
+                 </script>";
             exit;
+
         } else {
             $message = "<div class='alert alert-danger'>Incorrect password.</div>";
         }
@@ -36,7 +47,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang='en'>
 <head>

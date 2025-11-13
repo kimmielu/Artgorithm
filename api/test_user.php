@@ -1,14 +1,23 @@
 <?php
+require_once "database.php";
 require_once "User.php";
 
-$user = new User();
+// connect to DB
+$database = new Database();
+$db = $database->connect();
+
+// create User object
+$user = new User($db);
+
+// assign data for testing
 $user->username = "test_user";
 $user->email = "test@example.com";
-$user->password_hash = "password123";
+$user->password_hash = "password123"; // raw password
 
+// run registration
 if ($user->register()) {
-    echo "✅ User inserted successfully!";
+    echo "✅ Test Passed: User inserted successfully!";
 } else {
-    echo "❌ Failed to insert user.";
+    echo "❌ Test Failed: Could not insert user.";
 }
 ?>

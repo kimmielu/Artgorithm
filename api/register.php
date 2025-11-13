@@ -1,22 +1,32 @@
 <?php
+require_once "database.php";
 require_once "User.php";
 
 $message = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $user = new User();
+
+    // connect to db
+    $database = new Database();
+    $db = $database->connect();
+
+    // create user model
+    $user = new User($db);   // <-- This must pass the DB connection
+
+    // assign user properties
     $user->username = $_POST['username'];
     $user->email = $_POST['email'];
-    $user->password_hash = $_POST['password'];
+    $user->password_hash = $_POST['password']; // raw password (will be hashed)
+    $user->role = "customer"; // default role
 
+    // insert into DB
     if ($user->register()) {
         $message = "<div class='alert alert-success'>Registration successful! You can now log in.</div>";
     } else {
-        $message = "<div class='alert alert-danger'>Error: Email already exists or registration failed.</div>";
+        $message = "<div class='alert alert-danger'>Email already exists or registration failed.</div>";
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
