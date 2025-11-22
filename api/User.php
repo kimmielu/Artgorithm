@@ -16,27 +16,49 @@ class User {
         $this->conn = $db;
     }
 
-    // CREATE user
+    /*
+     * REGISTER USER
+     * Returns:
+     * - true  = success
+     * - false = username/email already exists OR DB error
+     */
     public function register() {
-        $query = "INSERT INTO {$this->table_name} 
-                (username, email, password_hash, role)
-                VALUES (:username, :email, :password_hash, :role)";
-                
-        $stmt = $this->conn->prepare($query);
 
-        $this->username = htmlspecialchars(strip_tags($this->username));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->password_hash = password_hash($this->password_hash, PASSWORD_DEFAULT);
+        try {
+            $query = "INSERT INTO {$this->table_name} 
+                    (username, email, password_hash, role)
+                    VALUES (:username, :email, :password_hash, :role)";
+            
+            $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":username", $this->username);
-        $stmt->bindParam(":email", $this->email);
-        $stmt->bindParam(":password_hash", $this->password_hash);
-        $stmt->bindParam(":role", $this->role);
+            // Sanitize input
+            $this->username = htmlspecialchars(strip_tags($this->username));
+            $this->email = htmlspecialchars(strip_tags($this->email));
+            $this->password_hash = password_hash($this->password_hash, PASSWORD_DEFAULT);
+            $this->role = htmlspecialchars(strip_tags($this->role));
 
-        return $stmt->execute();
+            // Bind params
+            $stmt->bindParam(":username", $this->username);
+            $stmt->bindParam(":email", $this->email);
+            $stmt->bindParam(":password_hash", $this->password_hash);
+            $stmt->bindParam(":role", $this->role);
+
+            return $stmt->execute();
+
+        } catch (PDOException $e) {
+
+            // Duplicate entry error
+            if ($e->errorInfo[1] == 1062) {
+                // either username or email already exists
+                return false;
+            }
+
+            // Other PDO errors -> rethrow for debugging
+            throw $e;
+        }
     }
 
-    // GET user by email
+    /* GET USER BY EMAIL */
     public function getByEmail($email) {
         $query = "SELECT * FROM {$this->table_name} WHERE email = :email LIMIT 1";
         $stmt = $this->conn->prepare($query);
@@ -45,7 +67,7 @@ class User {
         return $stmt;
     }
 
-    // UPDATE 2FA CODE
+    /* SET 2FA CODE */
     public function set2FACode($email, $code) {
         $query = "UPDATE {$this->table_name} 
                   SET two_factor_code = :code 
@@ -57,10 +79,11 @@ class User {
         return $stmt->execute();
     }
 
-    // VERIFY 2FA CODE
+    /* VERIFY 2FA */
     public function verify2FA($email, $code) {
-        $query = "SELECT * FROM {$this->table_name} 
-                  WHERE email = :email AND two_factor_code = :code 
+        $query = "SELECT * FROM {$this->table_name}
+                  WHERE email = :email 
+                  AND two_factor_code = :code
                   LIMIT 1";
 
         $stmt = $this->conn->prepare($query);
